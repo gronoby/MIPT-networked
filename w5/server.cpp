@@ -1,6 +1,6 @@
 #include <enet/enet.h>
 #include <iostream>
-#include "entity.h"
+#include "./entity.h"
 #include "protocol.h"
 #include "mathUtils.h"
 #include <stdlib.h>
@@ -12,11 +12,9 @@ static std::map<uint16_t, ENetPeer*> controlledMap;
 
 void on_join(ENetPacket *packet, ENetPeer *peer, ENetHost *host)
 {
-  // send all entities
   for (const Entity &ent : entities)
     send_new_entity(peer, ent);
 
-  // find max eid
   uint16_t maxEid = entities.empty() ? invalid_entity : entities[0].eid;
   for (const Entity &e : entities)
     maxEid = std::max(maxEid, e.eid);
@@ -27,16 +25,13 @@ void on_join(ENetPacket *packet, ENetPeer *peer, ENetHost *host)
                    0x00000044 * (rand() % 5);
   float x = (rand() % 4) * 5.f;
   float y = (rand() % 4) * 5.f;
-  Entity ent = {color, x, y, 0.f, (rand() / RAND_MAX) * 3.141592654f, 0.f, 0.f, newEid};
+  Entity ent = {color, x, y, 0.f, (rand() / RAND_MAX) * 3.141592654f, 0.f, 0.f, newEid, enet_time_get() };
   entities.push_back(ent);
 
   controlledMap[newEid] = peer;
 
-
-  // send info about new entity to everyone
   for (size_t i = 0; i < host->peerCount; ++i)
     send_new_entity(&host->peers[i], ent);
-  // send info about controlled entity
   send_set_controlled_entity(peer, newEid);
 }
 
@@ -106,18 +101,14 @@ int main(int argc, const char **argv)
     static int t = 0;
     for (Entity &e : entities)
     {
-      // simulate
       simulate_entity(e, dt);
-      // send
       for (size_t i = 0; i < server->peerCount; ++i)
       {
         ENetPeer *peer = &server->peers[i];
-        // skip this here in this implementation
-        //if (controlledMap[e.eid] != peer)
-        send_snapshot(peer, e.eid, e.x, e.y, e.ori);
+        send_snapshot(peer, e.eid, e.x, e.y, e.ori, enet_time_get());
       }
     }
-    usleep(100000);
+    Sleep(100);
   }
 
   enet_host_destroy(server);
@@ -125,5 +116,4 @@ int main(int argc, const char **argv)
   atexit(enet_deinitialize);
   return 0;
 }
-
 

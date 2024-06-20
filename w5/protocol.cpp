@@ -45,10 +45,10 @@ void send_entity_input(ENetPeer *peer, uint16_t eid, float thr, float steer)
   enet_peer_send(peer, 1, packet);
 }
 
-void send_snapshot(ENetPeer *peer, uint16_t eid, float x, float y, float ori)
+void send_snapshot(ENetPeer *peer, uint16_t eid, float x, float y, float ori, enet_uint32 timeStamp)
 {
   ENetPacket *packet = enet_packet_create(nullptr, sizeof(uint8_t) + sizeof(uint16_t) +
-                                                   3 * sizeof(float),
+                                                   3 * sizeof(float) + sizeof(enet_uint32),
                                                    ENET_PACKET_FLAG_UNSEQUENCED);
   uint8_t *ptr = packet->data;
   *ptr = E_SERVER_TO_CLIENT_SNAPSHOT; ptr += sizeof(uint8_t);
@@ -56,6 +56,7 @@ void send_snapshot(ENetPeer *peer, uint16_t eid, float x, float y, float ori)
   memcpy(ptr, &x, sizeof(float)); ptr += sizeof(float);
   memcpy(ptr, &y, sizeof(float)); ptr += sizeof(float);
   memcpy(ptr, &ori, sizeof(float)); ptr += sizeof(float);
+  memcpy(ptr, &timeStamp, sizeof(enet_uint32));
 
   enet_peer_send(peer, 1, packet);
 }
@@ -85,12 +86,13 @@ void deserialize_entity_input(ENetPacket *packet, uint16_t &eid, float &thr, flo
   steer = *(float*)(ptr); ptr += sizeof(float);
 }
 
-void deserialize_snapshot(ENetPacket *packet, uint16_t &eid, float &x, float &y, float &ori)
+void deserialize_snapshot(ENetPacket *packet, uint16_t &eid, float &x, float &y, float &ori, enet_uint32& timeStamp)
 {
   uint8_t *ptr = packet->data; ptr += sizeof(uint8_t);
   eid = *(uint16_t*)(ptr); ptr += sizeof(uint16_t);
   x = *(float*)(ptr); ptr += sizeof(float);
   y = *(float*)(ptr); ptr += sizeof(float);
   ori = *(float*)(ptr); ptr += sizeof(float);
+  timeStamp = *(enet_uint32*)(ptr);
 }
 
